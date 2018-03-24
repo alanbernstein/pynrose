@@ -40,7 +40,19 @@ It is hard to use this diagram to explain the meaning of the "segment_ratio" var
  \|/
 """
 
-# instead of the "turtle" approach, draw a grid of lines emanating from the polygon
+# there were two other short-lived approaches:
+# turtle:
+# define all turn angles and lengths, directly, in terms of a handful of base
+# variables. then just run those through a "turtle draw" controller.
+# this got unwieldy quickly.
+#
+# 3d:
+# draw a polyhedron in 3d space, then render it on a depth buffer with some
+# clever non-euclidean occlusion rules. i still like this idea, but i'm
+# not really sure if it's feasible. i didn't get too far before coming up
+# with the Right Way for 2d drawings...
+#
+# instead of these, just draw a grid of lines emanating from the base polygon
 # then find the appropriate intersections and connect them.
 # bonus: works with any polygon.
 
@@ -65,8 +77,8 @@ plot_args = dict(
 
 class SimpleLine(object):
     """
-    A simple line class that only handles intersections
-    replaces sympy's line, because that's too slow.
+    A simple line class that only handles intersections and origin distance.
+    replaces sympy's Line, because that's too slow.
     """
     def __init__(self, **kwargs):
         if 'p1' in kwargs and 'p2' in kwargs:
