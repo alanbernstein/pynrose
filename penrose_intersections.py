@@ -36,23 +36,23 @@ It is hard to use this diagram to explain the meaning of the "segment_ratio" var
 | |  /
 | | /
  \|/
-"""
 
-# there were two other short-lived approaches:
-# turtle:
-# define all turn angles and lengths, directly, in terms of a handful of base
-# variables. then just run those through a "turtle draw" controller.
-# this got unwieldy quickly.
-#
-# 3d:
-# draw a polyhedron in 3d space, then render it on a depth buffer with some
-# clever non-euclidean occlusion rules. i still like this idea, but i'm
-# not really sure if it's feasible. i didn't get too far before coming up
-# with the Right Way for 2d drawings...
-#
-# instead of these, just draw a grid of lines emanating from the base polygon
-# then find the appropriate intersections and connect them.
-# bonus: works with any polygon.
+there were two other short-lived approaches:
+turtle:
+define all turn angles and lengths, directly, in terms of a handful of base
+variables. then just run those through a "turtle draw" controller.
+this got unwieldy quickly.
+
+3d:
+draw a polyhedron in 3d space, then render it on a depth buffer with some
+clever non-euclidean occlusion rules. i still like this idea, but i'm
+not really sure if it's feasible. i didn't get too far before coming up
+with the Right Way for 2d drawings...
+
+instead of these, just draw a grid of lines emanating from the base polygon
+then find the appropriate intersections and connect them.
+bonus: works with any polygon.
+"""
 
 plot_args = dict(
     auto_open=True,
@@ -98,7 +98,6 @@ class Penrose(object):
 
     def __init__(self, polygon=None, sides=3, segments=2, segment_ratio=None):
         # TODO: make segment width an explicit parameter, instead of segment_ratio
-        # TODO: handle nonconvex polygons?
         # TODO: handle arbitrary "phase"
         # TODO: handle "pass-through vertices" for more complex shapes, e.g. curved sides
         # TODO: variable spacing for multiple segments
@@ -106,6 +105,7 @@ class Penrose(object):
         # TODO: handle different "skip values" of connecting segments, instead of 1 by default
         # TODO: handle genus 2+ shapes? E.G the letter A instead of a triangle
         # TODO: rewrite/simplify Penrose class to compute intersections lazily (hard)
+        # DONE: handle nonconvex polygons?
         # DONE: scale segments equally based on line-origin distance
         # DONE: use lightweight Line class so intersections are faster
         self.Nsides = sides
