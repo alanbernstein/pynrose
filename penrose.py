@@ -256,11 +256,10 @@ class Penrose(object):
         return data
 
     def _connect_vertices(self):
-        # self._connect_vertices_convex()
-        self._connect_vertices_nonconvex2()
+        self._connect_vertices_nonconvex()
 
-    def _connect_vertices_nonconvex2(self):
-        # connects vertices for any Nsides, but only two segments. convex or nonconvex.
+    def _connect_vertices_nonconvex(self):
+        # connects vertices for any Nsides, Nsegments. convex or nonconvex.
         # given what we learned from manually connected segments for the
         # "complicated" shape, it seems clear how to do this now:
         # - corners behave normally when a segment passes through concave vertices
