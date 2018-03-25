@@ -200,21 +200,6 @@ class Penrose(object):
         trace.update(**kwargs)
         return [trace]
 
-    def get_line_traces_dumb(self, **kwargs):
-        # returns a list of traces of the generating lines, based on
-        # how those lines were originally defined, which might not be useful
-        data = []
-        for key, line in self.lines.items():
-            p1, p2 = line.p1, line.p2
-            trace = dict(
-                x=[p1[0], p2[0]],
-                y=[p1[1], p2[1]],
-                name='%s' % (key,),
-            )
-            trace.update(**kwargs)
-            data.append(trace)
-        return data
-
     def get_line_traces(self, **kwargs):
         # returns a list of traces of the generating lines, by connecting vertices
         # more useful than the "dumb" version, but doesn't work as intended for
@@ -319,176 +304,6 @@ class Penrose(object):
 
             self.segments.append(part)
 
-    def _connect_vertices_convex(self):
-        # connects vertices for any (Nsides, Nsegments)
-        # convex only
-        def S(n, k):
-            return (n+k) % self.Nsides
-        self.segments = []
-        for i in range(self.Nsides):
-            part = [(i, 0, 0)]
-            for j in range(self.Nsegments):
-                part.append((S(i, j+1), j, j+1))
-
-            part.append((S(i, j+2), j+1, j))
-            part.append((S(i, j+2), j, j+1))
-
-            self.segments.append(part)
-
-    def _connect_vertices2(self):
-        # for posterity
-        # connects vertices for any number of sides, but only for two segments
-        # convex only
-        def S(n, k):
-            return (n+k) % self.Nsides
-        self.segments = []
-        for i in range(self.Nsides):
-            self.segments.append([
-                (i, 0, 0),
-                (S(i, 1), 0, 1),
-                (S(i, 2), 1, 2),
-                (S(i, 3), 2, 1),
-                (S(i, 3), 1, 2)
-            ])
-
-    def _connect_vertices3(self):
-        # for posterity
-        # connects vertices for any number of sides, but only for three segments
-        # convex only
-        def S(n, k):
-            return (n+k) % self.Nsides
-        self.segments = []
-        for i in range(self.Nsides):
-            self.segments.append([
-                (i, 0, 0),
-                (S(i, 1), 0, 1),
-                (S(i, 2), 1, 2),
-                (S(i, 3), 2, 3),
-                (S(i, 4), 3, 2),
-                (S(i, 4), 2, 3)
-            ])
-
-    def _connect_vertices_manual_complicated(self):
-        # manually define the connections for a complicated shape with
-        # vertex 1 is concave and isolated
-        # vertexes 4,5 are concave and adjacent
-        # TODO: might also need to investigate what happens when two
-        # concave vertices are separated by one convex vertex
-        def S(n, k):
-            return (n+k) % self.Nsides
-        self.segments = [
-            # 0 concave
-            # 1 convex
-            # 2 convex
-            # 3 concave
-            # 4 concave
-            # 5 convex
-            # 6 convex
-            # normal
-            # (i, 0, 0),
-            # (S(i, 1), 0, 1),
-            # (S(i, 2), 1, 2),
-            # (S(i, 3), 2, 1),
-            # (S(i, 3), 1, 2)
-            [
-                # blue. starts and ends at concave
-                (0, 0, 1),        #
-                (0, 1, 0),        # 0. (0, 0, 0) -> (0, 0, 1), (0, 1, 0)
-                (S(0, 1), 0, 1),  # 1. no change
-                (S(0, 2), 1, 2),  # 2. no change
-                (S(0, 3), 2, 2),  # 3. (3, 2, 1), (3, 1, 2) -> (3, 2, 2)
-            ],
-            [
-                # yellow. ends at concave
-                (1, 0, 0),        # 1. no change
-                (S(1, 1), 0, 1),  # 2. no change
-                (S(1, 2), 1, 2),  # 3. no change
-                (S(1, 3), 2, 2),  # 4. (4, 2, 1), (4, 1, 2) -> (4, 2, 2)
-            ],
-            [
-                # green. passes through concave, but doesn't start or end at concave
-                (2, 0, 0),        # 2. no change
-                (S(2, 1), 0, 1),  # 3. no change
-                (S(2, 2), 1, 2),  # 4. no change
-                (S(2, 3), 2, 1),  # 5. no change
-                (S(2, 3), 1, 2),  # 5. no change
-            ],
-            [
-                # red. starts at concave
-                (3, 0, 1),        #
-                (3, 1, 0),        # 3. (3, 0, 0) -> (3, 0, 1), (3, 1, 0)
-                (S(3, 1), 0, 1),  # 4. no change
-                (S(3, 2), 1, 2),  # 5. no change
-                (S(3, 3), 2, 1),  # 6. no change
-                (S(3, 3), 1, 2),  # 6. no change
-            ],
-            [
-                # purple. starts and ends at concave
-                (4, 0, 1),        #
-                (4, 1, 0),        # 4. (4, 0, 0) -> (4, 0, 1), (4, 1, 0)
-                (S(4, 1), 0, 1),  # 5. no change
-                (S(4, 2), 1, 2),  # 6. no change
-                (S(4, 3), 2, 2),  # 0. (0, 2, 1), (0, 1, 2) -> (0, 2, 2)
-            ],
-            [
-                # brown. passes through concave
-                (5, 0, 0),        # 5. no change
-                (S(5, 1), 0, 1),  # 6. no change
-                (S(5, 2), 1, 2),  # 0. no change
-                (S(5, 3), 2, 1),  # 1. no change
-                (S(5, 3), 1, 2),  # 1. no change
-            ],
-            [
-                # pink. passes through concave
-                (6, 0, 0),        # 6. no change
-                (S(6, 1), 0, 1),  # 0. no change
-                (S(6, 2), 1, 2),  # 1. no change
-                (S(6, 3), 2, 1),  # 2. no change
-                (S(6, 3), 1, 2),  # 2. no change
-            ],
-        ]
-
-    def _connect_vertices_manual_kite(self):
-        # manually define the connections for the "kite", simplest non-convex polygon
-        # vertex #2 is non-convex
-        def S(n, k):
-            return (n+k) % self.Nsides
-        self.segments = [
-            [
-                # blue      no change
-                (0, 0, 0),        # convex
-                (S(0, 1), 0, 1),  # convex
-                (S(0, 2), 1, 2),  # concave
-                (S(0, 3), 2, 1),  # convex
-                (S(0, 3), 1, 2),  # convex
-            ],
-            [
-                # yellow    no change
-                (1, 0, 0),        # convex
-                (S(1, 1), 0, 1),  # concave
-                (S(1, 2), 1, 2),  # convex
-                (S(1, 3), 2, 1),  # convex
-                (S(1, 3), 1, 2),  # convex
-            ],
-            [
-                # green. starts at concave, needs to adapt
-                (2, 0, 1),    # concave
-                (2, 1, 0),    # (2, 0, 0) -> (2, 0, 1), (2, 1, 0)  concave
-                (S(2, 1), 0, 1),  # convex
-                (S(2, 2), 1, 2),  # convex
-                (S(2, 3), 2, 1),  # convex
-                (S(2, 3), 1, 2),  # convex
-            ],
-            [
-                # red. ends at concave, needs to adapt
-                (3, 0, 0),        # convex
-                (S(3, 1), 0, 1),  # convex
-                (S(3, 2), 1, 2),  # convex
-                (S(3, 3), 2, 2),  # (2, 2, 1) -> (2, 2, 2)      concave
-                #(S(3, 3), 1, 2)  # (2, 1, 2) -> {}
-            ],
-        ]
-
 
 def random_convex_polygon(sides=3, debias=True):
     angles = np.arange(0, 1, 1./sides)
@@ -534,14 +349,7 @@ def main():
 
     p._define_lines()
     p._define_vertices()
-
-    if mode == 'kite':
-        p._connect_vertices_manual_kite()
-    elif mode == 'complicated':
-        # p._connect_vertices_manual_complicated()
-        p._connect_vertices()
-    else:
-        p._connect_vertices()
+    p._connect_vertices()
 
     data = []
     # data.extend(p.get_polygon_traces(mode='lines', line=dict(color='blue')))
