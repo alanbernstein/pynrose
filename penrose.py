@@ -15,27 +15,15 @@ segments = 2
 
 It is hard to use this diagram to explain the meaning of the "segment_ratio" variable...
 
- /\
-|\ \
-| \ \
-|  \ \
-|   \ \
-| |\ \ \
-| | \ \ \
-| | |\ \ \
-| | | \ \ \
-| | |  \ \ \
-| | |   \/ /|
-| | |   / / |
-| | |  / / /
-| | | / / /
-| | |/ / /
-| | | / /
-| | |/ /
-| |   /
-| |  /
-| | /
- \|/
+       _
+      / /\
+     / /  \
+    / / /\ \
+   / / /\ \ \
+  / / /  \ \ \
+ / /_/____\ \ \
+/__________\ \ \
+\_____________\/
 
 there were two other short-lived approaches:
 turtle:
@@ -151,7 +139,7 @@ class Penrose(object):
             for m in range(self.Nsegments+1):
                 # k = 1+self.segment_ratio*m            # naive scale
                 k = 1+self.segment_ratio*m*k_ratios[n]  # scale relative to origin distance
-                print('  side=%d, segment=%d, k=%f: vertices %d,%d' % (n, m, k, n, n1))
+                # print('  side=%d, segment=%d, k=%f: vertices %d,%d' % (n, m, k, n, n1))
 
                 self.lines[(n, m)] = self.line_class(
                     p1=(k*v[n][0], k*v[n][1]),
@@ -185,7 +173,7 @@ class Penrose(object):
                     # TODO: there is a cleaner way to do this, but have to change other indexes as well...
                     ki = (n, m1, m2)
                     li = l1.intersect(l2)
-                    print('  (%d, %d, %d): (%.4g, %.4g)' % (n, m1, m2, li[0], li[1]))
+                    # print('  (%d, %d, %d): (%.4g, %.4g)' % (n, m1, m2, li[0], li[1]))
                     self.vertices[ki] = li
 
     def get_polygon_traces(self, **kwargs):
@@ -248,7 +236,7 @@ class Penrose(object):
         return data
 
     def get_vertex_trace(self, **kwargs):
-        # returns a trace of the generating vertices
+        # returns a single trace of the generating vertices
         x = [v[0] for v in self.vertices.values()]
         y = [v[1] for v in self.vertices.values()]
         trace = dict(x=x, y=y)
@@ -279,6 +267,8 @@ class Penrose(object):
         # - corners behave differently when a segment starts or ends at a concave vertex
         # - just need to keep track of which vertex the segment is currently at,
         #   and adjust the corner that is added to the segment accordingly
+
+        print('connect_vertices_nonconvex')
         def S(n, k):
             return (n+k) % self.Nsides
 
