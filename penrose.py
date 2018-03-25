@@ -62,35 +62,23 @@ plot_args = dict(
 )
 
 
-def get_polygon_convexity(pts):
+def get_polygon_convexity_ccw(pts):
     # input:  Nx2 array
     # output: [is_convex, is_convex, ...] x N
-
-    # idea 1
-    # 0. figure out an interior point?? (to the left of the rightmost point?)
-    # 1. sort by angle
-    # 2. walk vertices in order (ascending angle), starting at smallest angle (break ties arbitrarily)
-    # 3. check whether "turning left" (convex) or "turning right" (concave)
-
-    # idea 2
-    # compute subtended angle for each vertex
-    # sum them, take supplementary angle if it's too big
-    # if <=180, convex, else concave
-
-    # idea 3
-    # 1. compute turn angle via cos(theta) = dot(a,b)/(norm(a)*norm(b))
+    # only works for ccw polygons (cross(v0, v1) < 0)
+    # but same approach will work for both if just determine whether ccw or not
     i0 = np.arange(len(pts))
     iprev = (i0 - 1) % len(pts)
     inext = (i0 + 1) % len(pts)
     v0 = pts[inext] - pts[i0]
     v1 = pts[i0] - pts[iprev]
-    dots = np.sum(v0 * v1, axis=1)
-    m0 = np.sqrt(np.sum(v0 * v0, axis=1))
-    m1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    turn_angle = np.arccos(dots/(m0*m1))
-    # 2. convexity is simply defined, assuming CCW traversal of polygon
-    is_convex = list(turn_angle - np.pi/2 > 0)
-    return is_convex
+    return np.cross(v0, v1) < 0
+
+
+def get_polygon_convexity(pts):
+    # work for both ccw and cw
+    # TODO
+    pass
 
 
 class Penrose(object):
@@ -122,7 +110,7 @@ class Penrose(object):
                 self.polygon = polygon
             self.Nsides = len(self.polygon)
         self.segment_ratio = segment_ratio or 1./((self.Nsides-2))
-        self.convexity = get_polygon_convexity(np.array(self.polygon))
+        self.convexity = get_polygon_convexity_ccw(np.array(self.polygon))
 
     def _define_lines(self):
         """
