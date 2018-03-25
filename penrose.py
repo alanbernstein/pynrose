@@ -88,7 +88,7 @@ class Penrose(object):
         self.Nsegments = segments
         if polygon is None:
             # use regular Nsides-sided polygon
-            pts = np.exp(np.arange(self.Nsides) * 2j * np.pi / self.Nsides)
+            pts = regular_polygon(self.Nsides)
             self.polygon = [(p.real, p.imag) for p in pts]
         else:
             if type(polygon) == np.ndarray and polygon.dtype == 'complex128':
@@ -307,8 +307,25 @@ def random_convex_polygon(sides=3, debias=True):
     return v
 
 
+def regular_polygon(sides=3):
+    return np.exp(np.arange(sides) * 2j * np.pi / sides)
+
+
+def regular_star(points=3):
+    n = np.arange(0., 2*points)
+    angles = n / points * np.pi
+    mags = .5 + 1.2 * (n % 2)
+    v = mags * np.exp(1j*angles)
+    return v
+
+
+def random_simple_polygon(sides=6, debias=True):
+    # simple, as in, non-self-intersecting
+    pass
+
+
 def main():
-    kite = np.array([1, -0.7-0.7j, -.2, -0.7+0.7j])
+    kite = np.array([1, -0.7+0.7j, -.2, -0.7-0.7j])
     pentathing = np.array([.7+.7j, -.7+.7j, -.3, -.7-.7j, .7-.7j])
     complicated_shape = 2 * np.array([.3, .7+.7j, -.7+.9j, -.4+.3j, -.4-.3j, -.7-.9j, .7-.7j])
     # p = Penrose(sides=5, segments=4, segment_ratio=0.1)
@@ -319,19 +336,25 @@ def main():
         mode = sys.argv[1]
     if mode == 'random' and len(sys.argv) > 2:
         sides = int(sys.argv[2])
+    if mode == 'star' and len(sys.argv) > 2:
+        sides = int(sys.argv[2])
     else:
         sides = 3
 
-    if mode == '3':
-        p = Penrose(sides=3, segments=2)
+    segments = 3
+
+    if mode in '3456789':
+        p = Penrose(sides=int(mode), segments=segments)
     elif mode == 'random':
-        p = Penrose(polygon=random_convex_polygon(sides=sides), segments=2)
+        p = Penrose(polygon=random_convex_polygon(sides=sides), segments=segments)
+    elif mode == 'star':
+        p = Penrose(polygon=regular_star(points=sides), segments=segments)
     elif mode == 'pentathing':
-        p = Penrose(polygon=pentathing, segments=2)
+        p = Penrose(polygon=pentathing, segments=segments)
     elif mode == 'complicated':
-        p = Penrose(polygon=complicated_shape, segments=2)
+        p = Penrose(polygon=complicated_shape, segments=segments)
     elif mode == 'kite':
-        p = Penrose(polygon=kite, segments=2)
+        p = Penrose(polygon=kite, segments=segments)
 
     print('base polygon:')
     for n, pt in enumerate(p.polygon):
