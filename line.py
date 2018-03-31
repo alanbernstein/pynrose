@@ -22,36 +22,25 @@ class SimpleLine(object):
         if 'p1' in kwargs and 'p2' in kwargs:
             self._init_point_point(**kwargs)
         elif 'a' in kwargs and 'b' in kwargs and 'c' in kwargs:
-            self._init_general(**kwargs)
+            self._init_standard(**kwargs)
         else:
             raise Exception('Line format not supported')
 
     def _init_point_point(self, **kwargs):
-        """
-        y-y1 = (y2-y1)/(x2-x1) (x-x1)
-        (x2-x1)(y-y1) = (y2-y1)(x-x1)
-        (x2-x1)(y-y1) - (y2-y1)(x-x1) = 0
-        a = y1 - y2
-        b = x2 - x1
-        c = (x2-x1)*y1 - (y2-y1)*x1
-
-        """
         self.p1 = kwargs['p1']
         self.p2 = kwargs['p2']
+        # if self.p1.imag != 0:
+        #     self.p1 = [self.p1.real, self.p1.imag]
         self.a = self.p1[1] - self.p2[1]
         self.b = self.p2[0] - self.p1[0]
         self.c = (self.p2[0] - self.p1[0])*self.p1[1] - (self.p2[1]-self.p1[1])*self.p1[0]
 
-    def _init_general(self, **kwargs):
+    def _init_standard(self, **kwargs):
         self.a = kwargs['a']
         self.b = kwargs['b']
         self.c = kwargs['c']
 
     def intersect(self, other):
-        """
-        a1 x + b1 y = c1
-        a2 x + b2 y = c2
-        """
         a1, b1, c1 = self.a, self.b, self.c
         a2, b2, c2 = other.a, other.b, other.c
         denom = a1*b2 - b1*a2
@@ -60,22 +49,6 @@ class SimpleLine(object):
         return (x, y)
 
     def origin_distance(self):
-        # ax + by = c
-        # y = c/b - a/b x
-        # y = b/a x    (perpendicular through origin)
-        # -b x + a y = 0
-        #
-        # compute intersection of these
-        #
-        # denom = a*a + b*b
-        # x = (c*a)/denom
-        # y = (c*b)/denom
-        #
-        # sqrt((ccaa+ccbb)/(aa+bb)^2)
-        # sqrt(ccaa+ccbb)/(aa+bb)
-        # c*sqrt(aa+bb)/(aa+bb)
-        # c / sqrt(aa+bb)
-        # TODO: should be abs(c)
         return np.abs(self.c) / np.sqrt(self.b**2 + self.a**2)
 
 
