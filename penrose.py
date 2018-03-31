@@ -73,8 +73,7 @@ def get_polygon_convexity(pts):
 class Penrose(object):
     line_class = SimpleLine  # SimpleLine for self-contained, LineWrapper to use sympy's Line
 
-    def __init__(self, polygon=None, sides=3, segments=2, segment_ratio=None):
-        # TODO: make segment width an explicit parameter, instead of segment_ratio
+    def __init__(self, polygon=None, sides=3, segments=2, segment_size=None):
         # TODO: handle arbitrary "phase"
         # TODO: handle "pass-through vertices" for more complex shapes, e.g. curved sides
         # TODO: variable spacing for multiple segments
@@ -99,7 +98,7 @@ class Penrose(object):
             else:
                 self.polygon = polygon
             self.Nsides = len(self.polygon)
-        self.segment_ratio = segment_ratio or 1./((self.Nsides-2))
+        self.segment_size = segment_size or [1./(self.Nsides)] * self.Nsegments
         self.convexity = get_polygon_convexity_ccw(np.array(self.polygon))
 
         self._define_lines()      # define Nsegments additional lines emanating from base polygon
@@ -125,37 +124,24 @@ class Penrose(object):
         (0 is the side of the base polygon, 1 is the first segment, etc)
         this generates all the lines needed for finding the intersection lattices at the polygon vertices
         """
-        # TODO: this works for any shape such that "moving the line away from the origin"
-        # is equivalent to "moving the line away from the interior of the shape".
-        # if i want to make this work for any arbitrary polygon, it will need to
-        # understand what the interior is and choose the correct direction
-
-        def S(n, k):
-            return (n+k) % self.Nsides
+        # TODO redo this more numpyly
 
         v = self.polygon
         self.lines = {}
+        mm = np.cumsum([0] + self.segment_size)
 
-        # compute line-origin distances
-        ds = []
+        # print('define_lines')
         for n in range(self.Nsides):
-            L = self.line_class(p1=v[n], p2=v[S(n, 1)])
-            ds.append(L.origin_distance())
-        d_min = np.min(ds)
-        # NOTE: could adjust the spacing right here
-        k_ratios = [d_min/d for d in ds]
-
-        print('define_lines')
-        for n in range(self.Nsides):
-            n1 = (n+1) % self.Nsides
+            n1 = self.S(n, 1)
+            dx, dy = v[n1][0] - v[n][0], v[n1][1] - v[n][1]
+            mag = np.hypot(dx, dy)
+            perp = [dy/mag, -dx/mag]  # this is where CW vs CCW matters
             for m in range(self.Nsegments+1):
-                # k = 1+self.segment_ratio*m            # naive scale
-                k = 1+self.segment_ratio*m*k_ratios[n]  # scale relative to origin distance
                 # print('  side=%d, segment=%d, k=%f: vertices %d,%d' % (n, m, k, n, n1))
 
                 self.lines[(n, m)] = self.line_class(
-                    p1=(k*v[n][0], k*v[n][1]),
-                    p2=(k*v[n1][0], k*v[n1][1]),
+                    p1=(v[n][0] + mm[m]*perp[0], v[n][1] + mm[m]*perp[1]),
+                    p2=(v[n1][0] + mm[m]*perp[0], v[n1][1] + mm[m]*perp[1]),
                 )
 
     def _get_vertex(self, k):
@@ -423,15 +409,16 @@ def main():
     kite = np.array([1, -0.7+0.7j, -.2, -0.7-0.7j])
     pentathing = np.array([.7+.7j, -.7+.7j, -.3, -.7-.7j, .7-.7j])
     complicated_shape = 2 * np.array([.3, .7+.7j, -.7+.9j, -.4+.3j, -.4-.3j, -.7-.9j, .7-.7j])
-    # p = Penrose(sides=5, segments=4, segment_ratio=0.1)
+    u_shape = np.array([1+1j, 1-1j, -1-1j, -1-2j, 2-2j, 2+2j, -1+2j, -1+1j])
 
     if len(sys.argv) < 2:
         mode = '3'
     else:
         mode = sys.argv[1]
+
     if mode == 'random' and len(sys.argv) > 2:
         sides = int(sys.argv[2])
-    if mode == 'star' and len(sys.argv) > 2:
+    elif mode == 'star' and len(sys.argv) > 2:
         sides = int(sys.argv[2])
         q = 2
         if len(sys.argv) > 3:
@@ -439,7 +426,7 @@ def main():
     else:
         sides = 3
 
-    segments = 3
+    segments = 2
 
     if mode in '3456789':
         p = Penrose(sides=int(mode), segments=segments)
@@ -453,6 +440,10 @@ def main():
         p = Penrose(polygon=complicated_shape, segments=segments)
     elif mode == 'kite':
         p = Penrose(polygon=kite, segments=segments)
+    elif mode == 'u':
+        p = Penrose(polygon=u_shape, segments=segments)
+    elif mode == 'test1':
+        p = Penrose(sides=8, segments=6, segment_size=[0.1, 0.2, 0.3, 0.3, 0.2, 0.1])
 
     print('base polygon:')
     for n, pt in enumerate(p.polygon):
