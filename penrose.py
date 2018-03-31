@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import time
 import numpy as np
 from plotly.offline import plot
 import plotly.graph_objs as go
@@ -84,6 +85,7 @@ class Penrose(object):
         # DONE: handle nonconvex polygons?
         # DONE: scale segments equally based on line-origin distance
         # DONE: use lightweight Line class so intersections are faster
+        t0 = time.time()
         self.Nsides = sides
         self.Nsegments = segments
         if polygon is None:
@@ -99,6 +101,16 @@ class Penrose(object):
             self.Nsides = len(self.polygon)
         self.segment_ratio = segment_ratio or 1./((self.Nsides-2))
         self.convexity = get_polygon_convexity_ccw(np.array(self.polygon))
+
+        self._define_lines()      # define Nsegments additional lines emanating from base polygon
+        self._define_vertices()   # define lattice of (Nsegments+1)^2 points at each vertex
+        self._connect_vertices()  # the hard part: connect the points in the right sequence
+        t1 = time.time()
+        print('geometry calculated in %f sec' % (t1-t0))
+
+    def S(self, n, k):
+        # cyclic Successor convenience function
+        return (n+k) % self.Nsides
 
     def _define_lines(self):
         """
@@ -267,9 +279,7 @@ class Penrose(object):
         # - just need to keep track of which vertex the segment is currently at,
         #   and adjust the corner that is added to the segment accordingly
 
-        print('connect_vertices_nonconvex')
-        def S(n, k):
-            return (n+k) % self.Nsides
+        # print('connect_vertices_nonconvex')
 
         self.segments = []
         for i in range(self.Nsides):
@@ -281,10 +291,10 @@ class Penrose(object):
 
             # middle corners are always the same
             for j in range(self.Nsegments):
-                part.append((S(i, j+1), j, j+1))
+                part.append((self.S(i, j+1), j, j+1))
 
             # last corner depends on convexity
-            end = S(i, j+2)
+            end = self.S(i, j+2)
             if self.convexity[end]:
                 part.append((end, j+1, j))
                 part.append((end, j, j+1))
@@ -327,6 +337,68 @@ def regular_star(p=5, q=2, r=1.0):
     return r * mags * np.exp(1j*angles)
 
 
+def random_simple_polygon(sides=6, debias=True):
+    # simple, as in, non-self-intersecting. possibly non-convex
+    # http://jeffe.cs.illinois.edu/open/randompoly.html
+    # trivial by brute force: there are N! orderings of N points,
+    # so just check each ordering for self-intersecting sides
+    # each of the N sides has to be compared with N-3 other sides,
+    # for N(N-3)/2 total intersection checks (0, 2, 5, 9, 14, ...)
+    # note that we only need to compute N(N-3)/2 intersection checks,
+    # then use those same checks for every ordering
+    # n=5: {02, 03, 13, 14, 24}
+    # n=6: {02, 03, 04, 13, 14, 15, 24, 25, 35}
+    import itertools
+    pts = np.random.random(sides) + 1j * np.random.random(sides)
+
+    # compute all intersection points
+    intersection_pts = {}
+    for n1 in range(sides-1):
+        for n2 in range(n1+1, sides):
+            # line(x) connects points x and x+1
+            # intersection(x, y) is where line x intersects line y
+            l1 = SimpleLine(pts[n1], pts[n1+1])
+            l2 = SimpleLine(pts[n2], pts[n2+1])
+            intersection_pts[(n1, n2)] = l1.intersect(l2)
+
+    def between((p1, p2), pi):
+        # TODO finish
+        return True
+
+    for edges in itertools.permutations(range(sides)):
+        # check intersections
+        for n1 in range(sides):
+            # upper = sides if n1 else sides-1
+            upper = sides - (n1 == 0)
+            for n2 in range(n1+2, upper):
+                # TODO finish
+                bounds1 = (intersection_pts[(n1-1, n1)], intersection_pts[(n1, n1+1)])
+                bounds2 = (intersection_pts[(n2-1, n2)], intersection_pts[(n2, n2+1)])
+                this = intersection_pts[(n1, n2)]
+                if between(bounds1, this) or between(bounds2, this):
+                    continue
+                print(n1, n2)
+        return pts[edges]
+
+
+def benchmark():
+    pts = regular_polygon(sides=7)
+    t0 = time.time()
+    iters = 0
+    while True:
+        t1 = time.time()
+        p = Penrose(polygon=pts, segments=4)
+        traces = p.get_segment_traces()
+        t2 = time.time()
+
+        if int(t2) != int(t1):
+            print('%f FPS' % (iters/(t2-t0)))
+
+        pts += 0.01
+        iters += 1
+
+
+@pm
 def main():
     kite = np.array([1, -0.7+0.7j, -.2, -0.7-0.7j])
     pentathing = np.array([.7+.7j, -.7+.7j, -.3, -.7-.7j, .7-.7j])
@@ -385,3 +457,5 @@ def main():
 
 
 main()
+# benchmark()
+# random_simple_polygon(6)
