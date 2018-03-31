@@ -10,11 +10,7 @@ from line import SimpleLine
 
 """
 This is an ASCII drawing of a Penrose triangle, or impossible triangle.
-In the terminology of the Penrose class below, it has
-sides = 3
-segments = 2
-
-It is hard to use this diagram to explain the meaning of the "segment_ratio" variable...
+In the terminology of the Penrose class below, it has 3 sides and 2 segments
 
        _
       / /\
@@ -38,8 +34,9 @@ clever non-euclidean occlusion rules. i still like this idea, but i'm
 not really sure if it's feasible. i didn't get too far before coming up
 with the Right Way for 2d drawings...
 
-instead of these, just draw a grid of lines emanating from the base polygon
-then find the appropriate intersections and connect them.
+instead of these, just draw a series of "parallel curves" emanating from the
+base polygon, which define lattices near each vertex
+then find some simple rules to make connections between adjacent lattices.
 bonus: works with any polygon.
 """
 
@@ -77,8 +74,8 @@ class Penrose(object):
     """
     line_class = SimpleLine  # SimpleLine for self-contained, LineWrapper to use sympy's Line
 
-    def __init__(self, polygon=None, sides=3, segments=2, segment_size=None):
-        # TODO: handle arbitrary "phase"
+    def __init__(self, polygon=None, sides=3, segments=2, segment_width=None):
+        # TODO: handle arbitrary "phase" (maybe by cleverly varying the segment_size?)
         # TODO: handle "pass-through vertices" for more complex shapes, e.g. curved sides
         # TODO: handle different "skip values" of connecting segments, instead of 1 by default
         # TODO: handle genus 2+ shapes? E.G the letter A instead of a triangle
@@ -102,7 +99,7 @@ class Penrose(object):
             else:
                 self.polygon = polygon
             self.Nsides = len(self.polygon)
-        self.segment_size = segment_size or [1./(self.Nsides)] * self.Nsegments
+        self.segment_width = segment_width or [1./(self.Nsides)] * self.Nsegments
         self.convexity = get_polygon_convexity_ccw(np.array(self.polygon))
 
         self._define_lines()      # define Nsegments additional lines emanating from base polygon
@@ -132,7 +129,7 @@ class Penrose(object):
 
         v = self.polygon
         self.lines = {}
-        mm = np.cumsum([0] + self.segment_size)
+        mm = np.cumsum([0] + self.segment_width)
 
         # print('define_lines')
         for n in range(self.Nsides):
@@ -194,14 +191,14 @@ class Penrose(object):
                     # print('  (%d, %d, %d): (%.4g, %.4g)' % (n, m1, m2, li[0], li[1]))
                     self.vertices[ki] = li
 
-    def get_polygon_traces(self, **kwargs):
+    def get_polygon_trace(self, **kwargs):
         # get_*_traces functions are all compatible with plotly:
         # returns a list of dicts that are usable as go.Scatter objects
         # kwargs can be any set of go.Scatter inputs (debug)
         #
         # returns a trace of the generating polygon
-        x = [p[0] for p in self.polygon + [self.polygon[0]]]
-        y = [p[1] for p in self.polygon + [self.polygon[0]]]
+        x = [p[0] for p in (self.polygon + [self.polygon[0]])]
+        y = [p[1] for p in (self.polygon + [self.polygon[0]])]
         trace = dict(x=x, y=y)
         trace.update(**kwargs)
         return [trace]
@@ -278,9 +275,6 @@ class Penrose(object):
         return data
 
     def _connect_vertices(self):
-        self._connect_vertices_nonconvex()
-
-    def _connect_vertices_nonconvex(self):
         # connects vertices for any Nsides, Nsegments. convex or nonconvex.
         # given what we learned from manually connected segments for the
         # "complicated" shape, it seems clear how to do this now:
@@ -289,7 +283,7 @@ class Penrose(object):
         # - just need to keep track of which vertex the segment is currently at,
         #   and adjust the corner that is added to the segment accordingly
 
-        # print('connect_vertices_nonconvex')
+        # print('connect_vertices')
 
         self.segments = []
         for i in range(self.Nsides):
@@ -451,14 +445,16 @@ def main():
     elif mode == 'u':
         p = Penrose(polygon=u_shape, segments=segments)
     elif mode == 'test1':
-        p = Penrose(sides=8, segments=6, segment_size=[0.1, 0.2, 0.3, 0.3, 0.2, 0.1])
+        p = Penrose(sides=8, segments=6, segment_width=[0.1, 0.2, 0.3, 0.3, 0.2, 0.1])
+    elif mode == 'test2':
+        p = Penrose(sides=3, segments=2, segment_width=[0.35, 0.05])
 
     print('base polygon:')
     for n, pt in enumerate(p.polygon):
         print('  %d: %s' % (n, pt))
 
     data = []
-    # data.extend(p.get_polygon_traces(mode='lines', line=dict(color='blue')))
+    data.extend(p.get_polygon_trace(mode='lines', line=dict(color='blue')))
     # data.extend(p.get_vertex_traces(mode='markers', line=dict(color='black')))
     # data.extend(p.get_segment_traces(mode='lines'))
     data.extend(p.get_segment_traces(mode='lines', line=dict(color='black')))
