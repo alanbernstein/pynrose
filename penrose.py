@@ -310,17 +310,21 @@ def regular_polygon(sides=3):
     return np.exp(np.arange(sides) * 2j * np.pi / sides)
 
 
-def regular_star(points=3):
-    n = np.arange(0., 2*points)
-    angles = n / points * np.pi
-    mags = .5 + 1.2 * (n % 2)
-    v = mags * np.exp(1j*angles)
-    return v
+def regular_star(p=5, q=2, r=1.0):
+    # see e.g. http://mathworld.wolfram.com/StarPolygon.html
+    # in that context,
+    # p = number of points
+    # q = "density" - how many vertices are skipped. 1 < q < p/2
+    # -
+    # r = distance from origin to star point
+    if p < 5 or not 1 < q < p/2.0:
+        raise ValueError
 
-
-def random_simple_polygon(sides=6, debias=True):
-    # simple, as in, non-self-intersecting
-    pass
+    r_mid = (np.cos(np.pi/p) - np.tan(np.pi * (q-1.0) / p) * np.sin(np.pi/p))
+    n = np.arange(0., 2*p)
+    angles = n / p * np.pi
+    mags = r_mid + (1 - r_mid) * (n % 2)
+    return r * mags * np.exp(1j*angles)
 
 
 def main():
@@ -337,6 +341,9 @@ def main():
         sides = int(sys.argv[2])
     if mode == 'star' and len(sys.argv) > 2:
         sides = int(sys.argv[2])
+        q = 2
+        if len(sys.argv) > 3:
+            q = int(sys.argv[3])
     else:
         sides = 3
 
@@ -347,7 +354,7 @@ def main():
     elif mode == 'random':
         p = Penrose(polygon=random_convex_polygon(sides=sides), segments=segments)
     elif mode == 'star':
-        p = Penrose(polygon=regular_star(points=sides), segments=segments)
+        p = Penrose(polygon=regular_star(p=sides, q=q), segments=segments)
     elif mode == 'pentathing':
         p = Penrose(polygon=pentathing, segments=segments)
     elif mode == 'complicated':
@@ -358,10 +365,6 @@ def main():
     print('base polygon:')
     for n, pt in enumerate(p.polygon):
         print('  %d: %s' % (n, pt))
-
-    p._define_lines()
-    p._define_vertices()
-    p._connect_vertices()
 
     data = []
     # data.extend(p.get_polygon_traces(mode='lines', line=dict(color='blue')))
