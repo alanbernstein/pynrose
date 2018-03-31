@@ -158,6 +158,22 @@ class Penrose(object):
                     p2=(k*v[n1][0], k*v[n1][1]),
                 )
 
+    def _get_vertex(self, k):
+        """
+        function to support lazy computation of vertex locations
+        use input key k to compute (and store) only those vertices that are required
+        calculation is more than fast enough without this though
+        """
+        if k in self.vertices:
+            return self.vertices[k]
+
+        # k = (base-vertex, dist1, dist2) = (n1, m1, m2)
+        # n2 = self.S(n1, 1)
+        # intersection of the lines (TODO verify)
+        # l1 = self.lines[(n1, m1)]
+        # l2 = self.lines[(n2, m2)]
+        pass
+
     def _define_vertices(self):
         """
         create a dict of vertices like this:
@@ -263,6 +279,10 @@ class Penrose(object):
                 x=[self.vertices[k][0] for k in part],
                 y=[self.vertices[k][1] for k in part],
             )
+            # trace = dict(
+            #     x=[self.get_vertex(k)[0] for k in part],
+            #     y=[self.get_vertex(k)[1] for k in part],
+            # )
             trace.update(**kwargs)
             data.append(trace)
         return data
