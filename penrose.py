@@ -71,17 +71,21 @@ def get_polygon_convexity(pts):
 
 
 class Penrose(object):
+    """
+    build a "penrose polyhegon" out of any simple polygon
+    assumes polygon is traversed CCW
+    """
     line_class = SimpleLine  # SimpleLine for self-contained, LineWrapper to use sympy's Line
 
     def __init__(self, polygon=None, sides=3, segments=2, segment_size=None):
         # TODO: handle arbitrary "phase"
         # TODO: handle "pass-through vertices" for more complex shapes, e.g. curved sides
-        # TODO: variable spacing for multiple segments
-        #       (so it looks like it has a more cylindrical cross section)
         # TODO: handle different "skip values" of connecting segments, instead of 1 by default
         # TODO: handle genus 2+ shapes? E.G the letter A instead of a triangle
-        # TODO: rewrite/simplify Penrose class to compute intersections lazily (hard)
-        # DONE: handle nonconvex polygons?
+        # IDEA: compute intersections lazily (fast enough already)
+        # DONE: variable spacing for multiple segments (cylindrical appearance)
+        # DONE: make segment width an explicit parameter, instead of segment_ratio
+        # DONE: handle nonconvex polygons
         # DONE: scale segments equally based on line-origin distance
         # DONE: use lightweight Line class so intersections are faster
         t0 = time.time()
@@ -173,7 +177,7 @@ class Penrose(object):
                        - origin at that vertex
                        - axes aligned with the two adjacent sides
         """
-        print('define_vertices')
+        # print('define_vertices')
         self.vertices = {}
         for n1 in range(0, self.Nsides):
             n2 = (n1 + 1) % self.Nsides
@@ -193,7 +197,7 @@ class Penrose(object):
     def get_polygon_traces(self, **kwargs):
         # get_*_traces functions are all compatible with plotly:
         # returns a list of dicts that are usable as go.Scatter objects
-        # kwargs can be any set of go.Scatter inputs
+        # kwargs can be any set of go.Scatter inputs (debug)
         #
         # returns a trace of the generating polygon
         x = [p[0] for p in self.polygon + [self.polygon[0]]]
@@ -203,7 +207,7 @@ class Penrose(object):
         return [trace]
 
     def get_line_traces(self, **kwargs):
-        # returns a list of traces of the generating lines, by connecting vertices
+        # returns a list of traces of the generating lines (debug), by connecting vertices
         # more useful than the "dumb" version, but doesn't work as intended for
         # concave vertices...
         # {
@@ -240,7 +244,7 @@ class Penrose(object):
         return data
 
     def get_vertex_traces(self, **kwargs):
-        # returns a list of named traces of the generating vertices
+        # returns a list of named traces of the generating vertices (debug)
         data = []
         for k, (x, y) in self.vertices.items():
             trace = dict(x=[x], y=[y], name='%s' % (k,))
@@ -250,7 +254,7 @@ class Penrose(object):
         return data
 
     def get_vertex_trace(self, **kwargs):
-        # returns a single trace of the generating vertices
+        # returns a single trace of the generating vertices (debug)
         x = [v[0] for v in self.vertices.values()]
         y = [v[1] for v in self.vertices.values()]
         trace = dict(x=x, y=y)
@@ -290,6 +294,11 @@ class Penrose(object):
         self.segments = []
         for i in range(self.Nsides):
             # first corner depends on convexity
+            # TODO here is an opportunity to switch convexity bool to
+            # vertex_type enum: {convex, concave, pass-through}
+            # pass-through means don't treat it like one of the
+            # penrose corner vertices, but just pass the line through it
+            # so you can create curved segments
             if self.convexity[i]:
                 part = [(i, 0, 0)]
             else:
@@ -404,7 +413,6 @@ def benchmark():
         iters += 1
 
 
-@pm
 def main():
     kite = np.array([1, -0.7+0.7j, -.2, -0.7-0.7j])
     pentathing = np.array([.7+.7j, -.7+.7j, -.3, -.7-.7j, .7-.7j])
@@ -452,19 +460,20 @@ def main():
     data = []
     # data.extend(p.get_polygon_traces(mode='lines', line=dict(color='blue')))
     # data.extend(p.get_vertex_traces(mode='markers', line=dict(color='black')))
-    data.extend(p.get_segment_traces(mode='lines'))
+    # data.extend(p.get_segment_traces(mode='lines'))
+    data.extend(p.get_segment_traces(mode='lines', line=dict(color='black')))
     # data.extend(p.get_vertex_trace(mode='markers', line=dict(color='black')))
     # data.extend(p.get_line_traces(mode='lines', line=dict(color='gray', dash='dash', width=1)))
 
     layout = go.Layout(
-        title='foobar',
+        title='impossible polyhegon',
         xaxis=dict(title='x', zeroline=False),
         yaxis=dict(title='y', scaleanchor='x', zeroline=False),
         # showlegend=False,
     )
 
     fig = go.Figure(data=data, layout=layout)
-    plot(fig, filename='penrose-lines.html', **plot_args)
+    plot(fig, filename='penrose.html', **plot_args)
 
 
 main()
